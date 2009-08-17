@@ -5,7 +5,7 @@ describe "a navigable page", :shared => true do
 
   it { @instance.should respond_to(:current?) }
 
-  it { @instance.should respond_to(:link) }
+  it { @instance.should respond_to(:build_link) }
 
   it { @instance.should respond_to(:name) }
 

@@ -1,13 +1,9 @@
 module Navigations
   class StaticPage
-
-    attr_accessor :link_to_eval
     
     attr_accessor :translatable_name
     alias :t_name :translatable_name
     alias :t_name= :translatable_name=
-
-    attr_writer :link
 
     attr_accessor :link_options
 
@@ -16,8 +12,6 @@ module Navigations
       @current_block = nil
       @name = nil
       @translatable_name = nil
-      @link = nil
-      @link_to_eval = nil
       @link_block = nil
       @subpages = []
     end
@@ -55,6 +49,23 @@ module Navigations
       @controller = controller
     end
 
+    def link
+      return @link_block.value if @link_block.respond_to? :value
+      nil
+    end
+
+    def link= link
+      @link_block = CallableValue.new(link)
+      link
+    end
+    
+    alias :link_to_eval :link
+
+    def link_to_eval= link_to_eval
+      @link_block = CallableEvalString.new(link_to_eval)
+      link_to_eval
+    end
+
     def current?(current_controller)
       return @current_block.call(current_controller) unless @current_block.nil?
 
@@ -62,22 +73,15 @@ module Navigations
       controller_class = controller_class.class unless controller_class.kind_of? Class
 
       if check_path?
-        return link(current_controller) == current_controller.request.path
+        return build_link(current_controller) == current_controller.request.path
       else
         return controller_class.name == controller.name #this work even in development mode
       end
     end
 
-    def link(controller)
-      if not @link.nil?
-        @link
-      elsif not @link_block.nil? and not controller.nil?
-        @link_block.call(controller)
-      elsif not link_to_eval.nil? and not controller.nil?
-        eval(link_to_eval, controller.send(:binding))
-      else
-        nil
-      end
+    def build_link(controller)
+      return @link_block.call(controller) if not @link_block.nil? and not controller.nil?
+      nil
     end
 
     def visible?(controller)
@@ -93,15 +97,15 @@ module Navigations
     end
 
     def check_path?
-      if (not (@link.nil? and @link_to_eval.nil?)) and controller.nil?
-        true
-      else
-        false
-      end
+      @link_block.respond_to? :value and controller.nil?
     end
 
     def current_block(&block)
       @current_block = block
+    end
+
+    def current= current
+      @current_block = CallableValue.new(current)
     end
 
     def link_block(&block)
@@ -127,6 +131,26 @@ module Navigations
       if controller.kind_of?(Class) and not controller.ancestors.include?(ApplicationController)
         raise ArgumentError.new("The controller for the page #{name} should be a class object" +
             " descending from ApplicationController.")
+      end
+    end
+
+    class CallableValue
+
+      attr_accessor :value
+
+      def initialize value
+        @value = value
+      end
+
+      def call controller
+        value
+      end
+    end
+
+    class CallableEvalString < CallableValue
+
+      def call controller
+        eval(value, controller.send(:binding))
       end
     end
   end

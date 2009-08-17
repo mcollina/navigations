@@ -55,9 +55,17 @@ describe StaticPage do
 
   it "should have a link accessor" do
     @instance.should respond_to(:link=)
+    @instance.should respond_to(:link)
 
     @instance.link = "hello world"
-    @instance.link(mock "Obj").should == "hello world"
+    @instance.link.should == "hello world"
+  end
+
+  it "should have a build_link method" do
+    @instance.should respond_to(:link=)
+
+    @instance.link = "hello world"
+    @instance.build_link(mock "Obj").should == "hello world"
   end
 
   it "should have a link_to_eval accessor" do
@@ -79,7 +87,7 @@ describe StaticPage do
     obj.var = "hello world"
 
     lambda {      
-      @instance.link(obj).should == obj.var
+      @instance.build_link(obj).should == obj.var
     }.should_not raise_error
   end
 
@@ -214,8 +222,8 @@ describe StaticPage do
       dummy.build_link o
     end
 
-    @instance.link(obj).should == "a"
-    @instance.link(obj).should == "b"
+    @instance.build_link(obj).should == "a"
+    @instance.build_link(obj).should == "b"
   end
 
   it { @instance.should respond_to(:subpage) }
@@ -225,6 +233,15 @@ describe StaticPage do
       page.should be_kind_of(StaticPage)
     end
     @instance.subpages.should_not be_empty
+  end
+
+  it "should have a current write attribute" do
+    @instance.should respond_to(:current=)
+    @instance.current = false
+    @instance.should_not be_current(mock "Object")
+
+    @instance.current = true
+    @instance.should be_current(mock "Object")
   end
 end
 
