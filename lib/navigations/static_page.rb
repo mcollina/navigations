@@ -13,6 +13,7 @@ module Navigations
       @name = nil
       @translatable_name = nil
       @link_block = nil
+      @visible_block = CallableValue.new(true)
       @subpages = []
     end
 
@@ -85,15 +86,20 @@ module Navigations
     end
 
     def visible?(controller)
-      unless @visible_block.nil?
-        @visible_block.call controller
-      else
-        true
-      end
+      @visible_block.call controller
     end
 
     def visible_block(&block)
       @visible_block = block
+    end
+
+    def visible_method= method_name
+      @visible_block = CallableSendMethod.new(method_name)
+    end
+
+    def visible_method
+      return @visible_block.value if @visible_block.respond_to? :value
+      nil
     end
 
     def check_path?
@@ -151,6 +157,13 @@ module Navigations
 
       def call controller
         eval(value, controller.send(:binding))
+      end
+    end
+
+    class CallableSendMethod < CallableValue
+
+      def call controller
+        controller.send(value)
       end
     end
   end

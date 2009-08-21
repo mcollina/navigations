@@ -123,15 +123,30 @@ describe StaticPage do
     
     obj = mock "Object"
 
-    dummy = mock "Dummy"
-    dummy.should_receive(:visible?).with(obj).twice.and_return(true,false)
+    controller = mock "Dummy"
+    controller.should_receive(:visible?).with(obj).twice.and_return(true,false)
 
     @instance.visible_block do |o|
-      dummy.visible? o
+      controller.visible? o
     end
     
     @instance.should be_visible(obj)
     @instance.should_not be_visible(obj)
+  end
+
+  it "should allow to specify a controller's method that will be called to check " +
+    "if this page is visible" do
+    @instance.should respond_to(:visible_method=)
+    @instance.should respond_to(:visible_method)
+
+    controller = mock "Controller"
+    controller.should_receive(:a_method).twice.and_return(true,false)
+
+    @instance.visible_method = :a_method
+    @instance.visible_method.should == :a_method
+
+    @instance.should be_visible(controller)
+    @instance.should_not be_visible(controller)
   end
 
   it { @instance.should respond_to(:check_path?) }
@@ -199,11 +214,11 @@ describe StaticPage do
 
     obj = mock "Object"
 
-    dummy = mock "Dummy"
-    dummy.should_receive(:current?).with(obj).twice.and_return(true,false)
+    controller = mock "Dummy"
+    controller.should_receive(:current?).with(obj).twice.and_return(true,false)
 
     @instance.current_block do |o|
-      dummy.current? o
+      controller.current? o
     end
 
     @instance.should be_current(obj)
@@ -215,11 +230,11 @@ describe StaticPage do
   it "should allow to specify a block that will be called to build the link" do
     obj = mock "Object"
 
-    dummy = mock "Dummy"
-    dummy.should_receive(:build_link).with(obj).twice.and_return("a","b")
+    controller = mock "Dummy"
+    controller.should_receive(:build_link).with(obj).twice.and_return("a","b")
 
     @instance.link_block do |o|
-      dummy.build_link o
+      controller.build_link o
     end
 
     @instance.build_link(obj).should == "a"
