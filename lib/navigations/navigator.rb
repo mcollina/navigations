@@ -1,15 +1,23 @@
 require File.dirname(__FILE__) + "/static_page"
 require File.dirname(__FILE__) + "/dynamic_page_factory"
+require 'monitor'
 
 module Navigations
   class Navigator
 
+    include MonitorMixin
+    
     attr_reader :name
-  
+    attr_accessor :cacheable
+    alias :cacheable? :cacheable
+
     def initialize(name=:anonymous)
+      mon_initialize # to initialize the monitor
       @pages = []
       @name = name.to_sym
       @contains_factory = false
+      @cacheable = false
+      @cache = nil
     end
 
     def page(page=nil,&block)
@@ -40,17 +48,21 @@ module Navigations
     end
 
     def pages
-      return @pages.clone unless @contains_factory
-
-      pages = @pages.map do |p|
-        if p.respond_to? :expand
-          p.expand
-        else
-          p
-        end
+      synchronize do
+        return @cache.clone unless @cache.nil?
       end
 
+      return @pages.clone unless @contains_factory
+
+      pages = @pages.map { |p| p.respond_to?(:expand) ? p.expand : p }
       pages.flatten!
+
+      if cacheable?
+        synchronize do
+          @cache = pages.clone
+        end
+      end
+      pages
     end
 
     def empty?
@@ -61,6 +73,12 @@ module Navigations
       duplicate = super
       duplicate.instance_variable_set(:@pages, @pages.dup);
       duplicate
+    end
+
+    def invalidate_cache
+      synchronize do
+        @cache = nil
+      end
     end
   end
 end

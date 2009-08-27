@@ -171,4 +171,57 @@ describe Navigator do
 
     @instance.pages.should_not == other.pages
   end
+
+  it "should have a cacheable? method" do
+    @instance.should respond_to(:cacheable?)
+    @instance.should_not be_cacheable
+  end
+
+  it "should have a cacheable= method" do
+    @instance.should respond_to(:cacheable=)
+    @instance.cacheable = true
+    @instance.should be_cacheable
+  end
+
+  it "should have an invalidate_cache method" do
+    @instance.should respond_to(:invalidate_cache)
+  end
+
+  describe "with cache enabled" do
+
+    before :each do
+      @instance.cacheable = true
+
+
+      @factory = mock "factory"
+      @factory.should_receive(:respond_to?).with(:expand).any_number_of_times.and_return(true)
+
+      @factory.should_receive(:expand).once.and_return([mock("Page1"), mock("Page2")])
+
+      @instance.page(mock_page("First"))
+      @instance.page_factory(@factory)
+      @instance.page(mock_page("Second"))
+    end
+
+    it "should cache the pages built by the factories" do
+      pages = @instance.pages
+      pages.should === @instance.pages
+    end
+
+    it "should allow to invalidate the cache" do
+      pages = @instance.pages
+      pages.should === @instance.pages
+
+      second_run = [mock("Page 3"), mock("Page 4")]
+      @factory.should_receive(:expand).once.and_return(second_run)
+
+      @instance.invalidate_cache
+      second_pages = @instance.pages
+      pages.should_not === second_pages
+
+      second_pages.size.should == 4
+      second_pages[1].should == second_run[0]
+      second_pages[2].should == second_run[1]
+    end
+  end
 end
