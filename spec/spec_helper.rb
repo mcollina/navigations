@@ -14,3 +14,8 @@ unless Object.const_defined?(:I18n)
   module I18n
   end
 end
+
+unless Object.const_defined?(:Rails)
+  module Rails
+  end
+end

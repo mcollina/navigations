@@ -3,21 +3,23 @@ require File.dirname(__FILE__) + "/dynamic_page_factory"
 require 'monitor'
 
 module Navigations
-  class Navigator
-
-    include MonitorMixin
-    
+  class Navigator    
     attr_reader :name
     attr_accessor :cacheable
     alias :cacheable? :cacheable
 
     def initialize(name=:anonymous)
-      mon_initialize # to initialize the monitor
       @pages = []
       @name = name.to_sym
       @contains_factory = false
       @cacheable = false
-      @cache = nil
+      
+      if name == :anonymous
+        part = name.to_s 
+      else
+        part = object_id.to_s
+      end
+      @cache_name = "navigator_" + part
     end
 
     def page(page=nil,&block)
@@ -48,20 +50,17 @@ module Navigations
     end
 
     def pages
-      synchronize do
-        return @cache.clone unless @cache.nil?
+      if cacheable?
+        cache = Rails.cache.read(@cache_name)
+        return cache unless cache.nil?
       end
-
       return @pages.clone unless @contains_factory
 
       pages = @pages.map { |p| p.respond_to?(:expand) ? p.expand : p }
       pages.flatten!
 
-      if cacheable?
-        synchronize do
-          @cache = pages.clone
-        end
-      end
+      
+      Rails.cache.write(@cache_name, pages) if cacheable?
       pages
     end
 
@@ -76,9 +75,7 @@ module Navigations
     end
 
     def invalidate_cache
-      synchronize do
-        @cache = nil
-      end
+      Rails.cache.write(@cache_name, nil)
     end
   end
 end

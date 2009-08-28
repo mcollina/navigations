@@ -201,6 +201,9 @@ describe Navigator do
       @instance.page(mock_page("First"))
       @instance.page_factory(@factory)
       @instance.page(mock_page("Second"))
+
+      @cache_store = ActiveSupport::Cache::MemoryStore.new
+      Rails.should_receive(:cache).any_number_of_times.and_return(@cache_store)
     end
 
     it "should cache the pages built by the factories" do
@@ -212,7 +215,7 @@ describe Navigator do
       pages = @instance.pages
       pages.should === @instance.pages
 
-      second_run = [mock("Page 3"), mock("Page 4")]
+      second_run = ["Page 3", "Page 4"]
       @factory.should_receive(:expand).once.and_return(second_run)
 
       @instance.invalidate_cache
